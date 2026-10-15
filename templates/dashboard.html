@@ -1,0 +1,275 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard{% endblock %}
+{% block header_title %}Pharmacy Dashboard{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
+{% endblock %}
+
+{% block content %}
+<!-- Quick Actions Bar -->
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
+    <div>
+        <h4 class="fw-bold mb-1">Good Day, {{ current_user.full_name }}! 👋</h4>
+        <p class="text-muted mb-0">Here is the real-time operational overview of {{ pharmacy_name }}.</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{{ url_for('billing') }}" class="btn btn-teal shadow-sm">
+            <i class="bi bi-receipt me-1"></i> New Billing / POS
+        </a>
+        <a href="{{ url_for('inventory') }}" class="btn btn-outline-teal">
+            <i class="bi bi-plus-circle me-1"></i> Add Medicine
+        </a>
+    </div>
+</div>
+
+<!-- KPI Metric Cards -->
+<div class="row g-3 mb-4">
+    <!-- Today's Sales -->
+    <div class="col-sm-6 col-xl-3">
+        <div class="card stat-card border-0 shadow-sm rounded-4 h-100">
+            <div class="card-body d-flex align-items-center">
+                <div class="stat-icon bg-teal-subtle text-teal rounded-3 p-3 me-3">
+                    <i class="bi bi-currency-rupee fs-3"></i>
+                </div>
+                <div>
+                    <span class="text-muted small text-uppercase fw-semibold">Today's Revenue</span>
+                    <h3 class="fw-bold mb-0 text-dark">₹{{ metrics.today_sales }}</h3>
+                    <small class="text-success fw-medium"><i class="bi bi-receipt"></i> {{ metrics.today_invoices }} bills today</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Total Medicines -->
+    <div class="col-sm-6 col-xl-3">
+        <div class="card stat-card border-0 shadow-sm rounded-4 h-100">
+            <div class="card-body d-flex align-items-center">
+                <div class="stat-icon bg-primary-subtle text-primary rounded-3 p-3 me-3">
+                    <i class="bi bi-capsule-pill fs-3"></i>
+                </div>
+                <div>
+                    <span class="text-muted small text-uppercase fw-semibold">Total Inventory</span>
+                    <h3 class="fw-bold mb-0 text-dark">{{ metrics.total_medicines }}</h3>
+                    <small class="text-muted">{{ metrics.total_stock_qty }} units in stock</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Low Stock Alert -->
+    <div class="col-sm-6 col-xl-3">
+        <div class="card stat-card border-0 shadow-sm rounded-4 h-100">
+            <div class="card-body d-flex align-items-center">
+                <div class="stat-icon bg-warning-subtle text-warning rounded-3 p-3 me-3">
+                    <i class="bi bi-exclamation-triangle fs-3"></i>
+                </div>
+                <div>
+                    <span class="text-muted small text-uppercase fw-semibold">Low Stock Items</span>
+                    <h3 class="fw-bold mb-0 text-dark">{{ metrics.low_stock_count }}</h3>
+                    <small class="text-warning fw-medium">
+                        {% if metrics.out_of_stock_count > 0 %}
+                            {{ metrics.out_of_stock_count }} out of stock!
+                        {% else %}
+                            Restock recommended
+                        {% endif %}
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Expiring Soon / Expired -->
+    <div class="col-sm-6 col-xl-3">
+        <div class="card stat-card border-0 shadow-sm rounded-4 h-100">
+            <div class="card-body d-flex align-items-center">
+                <div class="stat-icon bg-danger-subtle text-danger rounded-3 p-3 me-3">
+                    <i class="bi bi-calendar-x fs-3"></i>
+                </div>
+                <div>
+                    <span class="text-muted small text-uppercase fw-semibold">Expiry Alerts</span>
+                    <h3 class="fw-bold mb-0 text-dark">{{ metrics.expiring_soon_count + metrics.expired_count }}</h3>
+                    <small class="text-danger fw-medium">
+                        {% if metrics.expired_count > 0 %}
+                            {{ metrics.expired_count }} expired | {{ metrics.expiring_soon_count }} soon
+                        {% else %}
+                            {{ metrics.expiring_soon_count }} expiring in 30 days
+                        {% endif %}
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Charts & Quick Alerts Row -->
+<div class="row g-4 mb-4">
+    <!-- Sales Trend Chart -->
+    <div class="col-lg-8">
+        <div class="card border-0 shadow-sm rounded-4 h-100">
+            <div class="card-header bg-white border-0 pt-4 px-4 d-flex justify-content-between align-items-center">
+                <div>
+                    <h5 class="fw-bold mb-1">Sales Trend (Last 7 Days)</h5>
+                    <p class="text-muted small mb-0">Daily gross billing revenue in INR</p>
+                </div>
+                <span class="badge bg-light text-secondary border px-3 py-2 rounded-pill">
+                    <i class="bi bi-graph-up-arrow text-teal me-1"></i> Live Analytics
+                </span>
+            </div>
+            <div class="card-body px-4 pb-4">
+                <div style="height: 280px;">
+                    <canvas id="salesTrendChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Alerts Side Column -->
+    <div class="col-lg-4">
+        <!-- Low Stock Items List -->
+        <div class="card border-0 shadow-sm rounded-4 mb-4">
+            <div class="card-header bg-white border-0 pt-3 px-4 d-flex justify-content-between align-items-center">
+                <h6 class="fw-bold mb-0 text-warning d-flex align-items-center">
+                    <i class="bi bi-exclamation-triangle-fill me-2"></i> Low Stock Warnings
+                </h6>
+                <a href="{{ url_for('inventory', status='low') }}" class="btn btn-sm btn-link text-decoration-none">View All</a>
+            </div>
+            <div class="card-body p-0">
+                <div class="list-group list-group-flush">
+                    {% if low_stock_items %}
+                        {% for item in low_stock_items %}
+                            <div class="list-group-item px-4 py-2 d-flex justify-content-between align-items-center border-0 border-bottom">
+                                <div>
+                                    <span class="fw-semibold d-block text-dark">{{ item.name }}</span>
+                                    <small class="text-muted">Batch: {{ item.batch_no }}</small>
+                                </div>
+                                <span class="badge {% if item.quantity == 0 %}bg-danger{% else %}bg-warning text-dark{% endif %} rounded-pill px-3 py-2">
+                                    {{ item.quantity }} left
+                                </span>
+                            </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="p-4 text-center text-muted small">
+                            <i class="bi bi-check-circle text-success fs-4 d-block mb-1"></i>
+                            All medicines have healthy stock!
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Expiring Soon List -->
+        <div class="card border-0 shadow-sm rounded-4">
+            <div class="card-header bg-white border-0 pt-3 px-4 d-flex justify-content-between align-items-center">
+                <h6 class="fw-bold mb-0 text-danger d-flex align-items-center">
+                    <i class="bi bi-clock-history me-2"></i> Expiry Alerts
+                </h6>
+                <a href="{{ url_for('inventory', status='expiring') }}" class="btn btn-sm btn-link text-decoration-none">View All</a>
+            </div>
+            <div class="card-body p-0">
+                <div class="list-group list-group-flush">
+                    {% if expiring_items %}
+                        {% for item in expiring_items %}
+                            <div class="list-group-item px-4 py-2 d-flex justify-content-between align-items-center border-0 border-bottom">
+                                <div>
+                                    <span class="fw-semibold d-block text-dark">{{ item.med_name }}</span>
+                                    <small class="text-muted">Batch: {{ item.batch_no }}</small>
+                                </div>
+                                <span class="badge {% if item.expiry_date|string < today_str %}bg-danger{% else %}bg-warning text-dark{% endif %} rounded-pill">
+                                    {{ item.expiry_date }}
+                                </span>
+                            </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="p-4 text-center text-muted small">
+                            <i class="bi bi-shield-check text-success fs-4 d-block mb-1"></i>
+                            No medicines expiring in the next 30 days!
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Invoices Table -->
+<div class="card border-0 shadow-sm rounded-4 mb-4">
+    <div class="card-header bg-white border-0 pt-4 px-4 d-flex justify-content-between align-items-center">
+        <div>
+            <h5 class="fw-bold mb-1">Recent Invoices</h5>
+            <p class="text-muted small mb-0">Latest sales transactions at the counter</p>
+        </div>
+        <a href="{{ url_for('sales_history') }}" class="btn btn-sm btn-outline-teal rounded-pill px-3">
+            View All Sales <i class="bi bi-arrow-right ms-1"></i>
+        </a>
+    </div>
+    <div class="card-body px-4 pb-4">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light text-muted small text-uppercase">
+                    <tr>
+                        <th>Invoice No</th>
+                        <th>Customer</th>
+                        <th>Date & Time</th>
+                        <th>Payment Mode</th>
+                        <th class="text-end">Total Amount</th>
+                        <th class="text-center">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if recent_sales %}
+                        {% for sale in recent_sales %}
+                            <tr>
+                                <td class="fw-bold text-teal">
+                                    <i class="bi bi-receipt-cutoff me-1"></i> {{ sale.invoice_no }}
+                                </td>
+                                <td>
+                                    <div class="fw-medium text-dark">{{ sale.customer_name }}</div>
+                                </td>
+                                <td class="text-muted small">
+                                    {{ sale.created_at }}
+                                </td>
+                                <td>
+                                    <span class="badge bg-light text-dark border px-2 py-1">
+                                        <i class="bi bi-credit-card me-1 text-teal"></i> {{ sale.payment_mode }}
+                                    </span>
+                                </td>
+                                <td class="text-end fw-bold text-dark fs-6">
+                                    ₹{{ "%.2f"|format(sale.total_amount) }}
+                                </td>
+                                <td class="text-center">
+                                    <a href="{{ url_for('view_invoice', sale_id=sale.id) }}" class="btn btn-sm btn-outline-teal rounded-pill px-3">
+                                        <i class="bi bi-eye me-1"></i> View
+                                    </a>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="6" class="text-center py-4 text-muted">
+                                <i class="bi bi-receipt fs-2 d-block mb-2 text-muted"></i>
+                                No sales recorded yet. Start billing using POS!
+                            </td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- Chart.js CDN -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script type="application/json" id="chart-data">
+    {{ {'labels': chart_labels, 'values': chart_values} | tojson }}
+</script>
+<script>
+    const chartData = JSON.parse(document.getElementById('chart-data').textContent);
+    const chartLabels = chartData.labels;
+    const chartValues = chartData.values;
+</script>
+<script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+{% endblock %}

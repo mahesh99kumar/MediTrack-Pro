@@ -1,0 +1,24 @@
+.login-body {
+    background: linear-gradient(135deg, #0f766e 0%, #115e59 50%, #042f2e 100%);
+    font-family: 'Plus Jakarta Sans', sans-serif;
+}
+
+.login-card {
+    max-width: 900px;
+    width: 100%;
+    border-radius: 1.25rem;
+}
+
+.login-banner {
+    background: linear-gradient(160deg, #0d9488 0%, #0f766e 100%);
+}
+
+.feature-item {
+    font-size: 0.95rem;
+    font-weight: 500;
+}
+
+.demo-credentials {
+    background-color: #f0fdfa;
+    border: 1px dashed #0d9488 !important;
+}

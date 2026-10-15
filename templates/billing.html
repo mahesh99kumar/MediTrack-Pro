@@ -1,0 +1,190 @@
+{% extends 'base.html' %}
+
+{% block title %}Billing & POS{% endblock %}
+{% block header_title %}Point of Sale (POS) & Invoicing{% endblock %}
+
+{% block content %}
+<form method="POST" action="{{ url_for('create_sale') }}" id="billingForm">
+    <div class="row g-4">
+        <!-- Left Column: Item Selection & Cart Table -->
+        <div class="col-lg-8">
+            <!-- Customer Details Card -->
+            <div class="card border-0 shadow-sm rounded-4 mb-4">
+                <div class="card-header bg-white border-0 pt-4 px-4 d-flex justify-content-between align-items-center">
+                    <h5 class="fw-bold mb-0 text-dark"><i class="bi bi-person-badge text-teal me-2"></i> Customer Information</h5>
+                    <span class="badge bg-light text-secondary border px-3 py-1 rounded-pill">Step 1</span>
+                </div>
+                <div class="card-body p-4 pt-2">
+                    <div class="row g-3">
+                        <div class="col-md-5">
+                            <label class="form-label small fw-semibold text-secondary">Select Existing Customer</label>
+                            <select class="form-select" id="existingCustomerSelect" name="customer_id">
+                                <option value="new">-- New / Walk-in Customer --</option>
+                                <option value="other">-- Other --</option>
+                                {% for cust in customers %}
+                                    <option value="{{ cust.id }}" data-name="{{ cust.name }}" data-phone="{{ cust.phone or '' }}">{{ cust.name }} ({{ cust.phone or 'No Phone' }})</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label small fw-semibold text-secondary">Customer Name</label>
+                            <input type="text" class="form-control" id="customerName" name="customer_name" placeholder="Walk-in Customer">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label small fw-semibold text-secondary">Phone Number</label>
+                            <input type="tel" class="form-control" id="customerPhone" name="customer_phone" placeholder="Optional phone">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Medicine Picker Card -->
+            <div class="card border-0 shadow-sm rounded-4 mb-4">
+                <div class="card-header bg-white border-0 pt-4 px-4 d-flex justify-content-between align-items-center">
+                    <h5 class="fw-bold mb-0 text-dark"><i class="bi bi-capsule text-teal me-2"></i> Add Medicines to Bill</h5>
+                    <span class="badge bg-light text-secondary border px-3 py-1 rounded-pill">Step 2</span>
+                </div>
+                <div class="card-body p-4 pt-2">
+                    <div class="row g-3 align-items-end">
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold text-secondary">Select Available Medicine</label>
+                            <select class="form-select select-medicine" id="medicineSelect">
+                                <option value="">-- Choose Medicine from Stock --</option>
+                                {% for med in medicines %}
+                                    <option value="{{ med.med_id }}" 
+                                            data-name="{{ med.med_name }}" 
+                                            data-price="{{ med.sell_price }}" 
+                                            data-stock="{{ med.quantity }}"
+                                            data-batch="{{ med.batch_no }}">
+                                        {{ med.med_name }} [Batch: {{ med.batch_no }}] - ₹{{ "%.2f"|format(med.sell_price) }} (Stock: {{ med.quantity }})
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label small fw-semibold text-secondary">Quantity</label>
+                            <input type="number" class="form-control" id="itemQuantity" value="1" min="1">
+                        </div>
+                        <div class="col-md-3">
+                            <button type="button" class="btn btn-teal w-100" id="addItemBtn">
+                                <i class="bi bi-cart-plus me-1"></i> Add Item
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Cart Table Card -->
+            <div class="card border-0 shadow-sm rounded-4">
+                <div class="card-header bg-white border-0 pt-4 px-4 d-flex justify-content-between align-items-center">
+                    <h5 class="fw-bold mb-0 text-dark"><i class="bi bi-cart-check text-teal me-2"></i> Invoice Items</h5>
+                    <span class="badge bg-teal-subtle text-teal rounded-pill px-3 py-1" id="itemsCountBadge">0 Items</span>
+                </div>
+                <div class="card-body p-4">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0" id="cartTable">
+                            <thead class="table-light text-muted small text-uppercase">
+                                <tr>
+                                    <th>Medicine Name</th>
+                                    <th>Batch</th>
+                                    <th>Unit Price</th>
+                                    <th style="width: 130px;">Quantity</th>
+                                    <th class="text-end">Total</th>
+                                    <th class="text-center" style="width: 60px;">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="cartTableBody">
+                                <tr id="emptyCartRow">
+                                    <td colspan="6" class="text-center py-5 text-muted">
+                                        <i class="bi bi-cart-x fs-2 d-block mb-2 text-muted"></i>
+                                        No items added yet. Select a medicine above and click "Add Item".
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column: Order Summary & Checkout -->
+        <div class="col-lg-4">
+            <div class="card border-0 shadow-sm rounded-4 sticky-top" style="top: 20px;">
+                <div class="card-header bg-teal text-white border-0 py-3 px-4 rounded-top-4">
+                    <h5 class="fw-bold mb-0"><i class="bi bi-receipt me-2"></i> Bill Summary</h5>
+                </div>
+                <div class="card-body p-4">
+                    <!-- Pricing Breakdown -->
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-muted">Subtotal:</span>
+                        <span class="fw-semibold text-dark" id="displaySubtotal">₹0.00</span>
+                    </div>
+
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <label class="small text-muted mb-0">Discount (₹):</label>
+                            <input type="number" step="0.01" class="form-control form-control-sm text-end w-50" id="discountInput" name="discount" value="0.00" min="0">
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <label class="small text-muted mb-0">GST / Tax (%):</label>
+                            <select class="form-select form-select-sm text-end w-50" id="taxPercentSelect" name="tax_percent">
+                                <option value="0">0% (Nil)</option>
+                                <option value="5">5% (GST)</option>
+                                <option value="12" selected>12% (Standard Pharma)</option>
+                                <option value="18">18% (GST)</option>
+                            </select>
+                        </div>
+                        <div class="d-flex justify-content-between small text-muted">
+                            <span>Tax Amount:</span>
+                            <span id="displayTaxAmount">₹0.00</span>
+                        </div>
+                    </div>
+
+                    <hr class="my-3">
+
+                    <!-- Grand Total -->
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <span class="fs-5 fw-bold text-dark">Grand Total:</span>
+                        <span class="fs-3 fw-bold text-teal" id="displayGrandTotal">₹0.00</span>
+                    </div>
+
+                    <!-- Payment Mode -->
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold text-secondary">Payment Method</label>
+                        <div class="btn-group w-100" role="group">
+                            <input type="radio" class="btn-check" name="payment_mode" id="payCash" value="Cash" checked>
+                            <label class="btn btn-outline-teal" for="payCash"><i class="bi bi-cash-stack"></i> Cash</label>
+
+                            <input type="radio" class="btn-check" name="payment_mode" id="payUPI" value="UPI / QR">
+                            <label class="btn btn-outline-teal" for="payUPI"><i class="bi bi-qr-code-scan"></i> UPI</label>
+
+                            <input type="radio" class="btn-check" name="payment_mode" id="payCard" value="Card">
+                            <label class="btn btn-outline-teal" for="payCard"><i class="bi bi-credit-card"></i> Card</label>
+                        </div>
+                    </div>
+
+                    <!-- Notes -->
+                    <div class="mb-4">
+                        <label class="form-label small fw-semibold text-secondary">Doctor / Prescription Notes (Optional)</label>
+                        <input type="text" class="form-control form-control-sm" name="notes" placeholder="e.g. Dr. A. Sharma prescription">
+                    </div>
+
+                    <!-- Checkout Button -->
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-teal btn-lg fw-bold shadow-sm" id="completeSaleBtn" disabled>
+                            <i class="bi bi-check2-circle me-1"></i> Generate & Print Invoice
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/billing.js') }}"></script>
+{% endblock %}

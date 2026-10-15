@@ -1,0 +1,149 @@
+{% extends 'base.html' %}
+
+{% block title %}Invoice {{ sale.invoice_no }}{% endblock %}
+{% block header_title %}Tax Invoice / Receipt{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-9">
+        <!-- Print & Navigation Actions -->
+        <div class="d-flex justify-content-between align-items-center mb-4 no-print">
+            <a href="{{ url_for('billing') }}" class="btn btn-outline-secondary rounded-pill px-3">
+                <i class="bi bi-arrow-left me-1"></i> Back to POS
+            </a>
+            <div class="d-flex gap-2">
+                <a href="{{ url_for('sales_history') }}" class="btn btn-outline-teal rounded-pill px-3">
+                    <i class="bi bi-list-check me-1"></i> All Invoices
+                </a>
+                <button type="button" class="btn btn-teal rounded-pill px-4 shadow-sm" onclick="window.print()">
+                    <i class="bi bi-printer-fill me-1"></i> Print Invoice
+                </button>
+            </div>
+        </div>
+
+        <!-- Printable Invoice Sheet -->
+        <div class="card border-0 shadow rounded-4 p-4 p-md-5 bg-white print-area" id="invoiceSheet">
+            <!-- Pharmacy Header -->
+            <div class="border-bottom pb-4 mb-4">
+                <div class="row align-items-center">
+                    <div class="col-sm-7">
+                        <div class="d-flex align-items-center mb-2">
+                            <i class="bi bi-capsule-pill fs-1 text-teal me-2"></i>
+                            <h2 class="fw-bold mb-0 text-dark">{{ pharmacy_name }}</h2>
+                        </div>
+                        <p class="text-muted small mb-1">{{ pharmacy_tagline }}</p>
+                        <p class="text-secondary small mb-1">{{ pharmacy_address }}</p>
+                        <p class="text-secondary small mb-0">
+                            <strong>Phone:</strong> {{ pharmacy_phone }} | <strong>Email:</strong> {{ pharmacy_email }}
+                        </p>
+                    </div>
+                    <div class="col-sm-5 text-sm-end mt-3 mt-sm-0">
+                        <div class="badge bg-teal-subtle text-teal fs-6 px-3 py-2 rounded-pill mb-2">ORIGINAL TAX INVOICE</div>
+                        <div class="small text-muted"><strong>GSTIN:</strong> {{ pharmacy_gstin }}</div>
+                        <div class="small text-muted"><strong>D.L. No:</strong> {{ pharmacy_dl }}</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Invoice & Customer Meta -->
+            <div class="row mb-4">
+                <div class="col-sm-6">
+                    <h6 class="text-muted text-uppercase small fw-bold mb-2">Billed To (Customer):</h6>
+                    <h5 class="fw-bold text-dark mb-1">{{ sale.customer_name }}</h5>
+                    {% if customer and customer.phone %}
+                        <p class="text-secondary small mb-1"><strong>Phone:</strong> {{ customer.phone }}</p>
+                    {% endif %}
+                    {% if customer and customer.address %}
+                        <p class="text-secondary small mb-1"><strong>Address:</strong> {{ customer.address }}</p>
+                    {% endif %}
+                </div>
+                <div class="col-sm-6 text-sm-end mt-3 mt-sm-0">
+                    <h6 class="text-muted text-uppercase small fw-bold mb-2">Invoice Details:</h6>
+                    <p class="mb-1"><strong>Invoice No:</strong> <span class="text-teal fw-bold">{{ sale.invoice_no }}</span></p>
+                    <p class="mb-1 text-secondary small"><strong>Date & Time:</strong> {{ sale.created_at }}</p>
+                    <p class="mb-1 text-secondary small"><strong>Payment Method:</strong> <span class="badge bg-light text-dark border">{{ sale.payment_mode }}</span></p>
+                    {% if sale.notes %}
+                        <p class="mb-0 text-secondary small"><strong>Doctor / Notes:</strong> {{ sale.notes }}</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Items Table -->
+            <div class="table-responsive mb-4">
+                <table class="table table-bordered align-middle">
+                    <thead class="table-light text-secondary small text-uppercase">
+                        <tr>
+                            <th class="text-center" style="width: 45px;">#</th>
+                            <th>Description / Medicine</th>
+                            <th>Batch No</th>
+                            <th>Exp. Date</th>
+                            <th class="text-end">Unit Price</th>
+                            <th class="text-center" style="width: 70px;">Qty</th>
+                            <th class="text-end">Amount (₹)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in items %}
+                            <tr>
+                                <td class="text-center text-muted small">{{ loop.index }}</td>
+                                <td class="fw-semibold text-dark">{{ item.medicine_name }}</td>
+                                <td class="small text-muted">{{ item.batch_no or 'N/A' }}</td>
+                                <td class="small text-muted">{{ item.expiry_date or 'N/A' }}</td>
+                                <td class="text-end text-muted">₹{{ "%.2f"|format(item.unit_price) }}</td>
+                                <td class="text-center fw-bold">{{ item.quantity }}</td>
+                                <td class="text-end fw-semibold text-dark">₹{{ "%.2f"|format(item.total_price) }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Totals & Calculation -->
+            <div class="row justify-content-end mb-4">
+                <div class="col-sm-6 col-md-5">
+                    <div class="d-flex justify-content-between py-1 border-bottom small">
+                        <span class="text-muted">Subtotal:</span>
+                        <span class="fw-semibold">₹{{ "%.2f"|format(sale.subtotal) }}</span>
+                    </div>
+                    {% if sale.discount > 0 %}
+                        <div class="d-flex justify-content-between py-1 border-bottom small text-danger">
+                            <span>Discount:</span>
+                            <span>-₹{{ "%.2f"|format(sale.discount) }}</span>
+                        </div>
+                    {% endif %}
+                    <div class="d-flex justify-content-between py-1 border-bottom small">
+                        <span class="text-muted">GST / Tax Amount:</span>
+                        <span class="fw-semibold">₹{{ "%.2f"|format(sale.tax) }}</span>
+                    </div>
+                    <div class="d-flex justify-content-between py-2 border-bottom border-2 fs-5">
+                        <span class="fw-bold text-dark">Total Payable:</span>
+                        <span class="fw-bold text-teal">₹{{ "%.2f"|format(sale.total_amount) }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Terms & Footer -->
+            <div class="border-top pt-4 mt-2">
+                <div class="row align-items-end">
+                    <div class="col-sm-8">
+                        <h6 class="fw-bold small text-muted text-uppercase mb-1">Terms & Conditions:</h6>
+                        <ul class="text-muted small ps-3 mb-0" style="font-size: 0.8rem; line-height: 1.4;">
+                            <li>Medicines once sold will not be returned without the original invoice.</li>
+                            <li>Storage conditions: Store medicines in a cool, dry place as instructed.</li>
+                            <li>Schedule H / H1 drugs dispensed strictly on registered medical practitioner prescription.</li>
+                        </ul>
+                    </div>
+                    <div class="col-sm-4 text-sm-end mt-4 mt-sm-0">
+                        <div class="signature-box" style="margin-top: 30px;">
+                            <div class="border-top border-dark d-inline-block pt-1 px-4 text-center">
+                                <small class="text-dark fw-bold d-block">Authorized Signatory / Pharmacist</small>
+                                <small class="text-muted" style="font-size: 0.75rem;">{{ pharmacy_name }}</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

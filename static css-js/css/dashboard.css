@@ -1,0 +1,27 @@
+/* Dashboard Cards */
+.stat-card {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.stat-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.05) !important;
+}
+
+.stat-icon {
+    width: 60px;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Dashboard alerts list */
+.list-group-item:hover {
+    background-color: #f8fafc;
+}
+
+/* Quick KPI pill badge */
+.quick-pill {
+    font-size: 0.85rem;
+}

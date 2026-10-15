@@ -1,0 +1,143 @@
+{% extends 'base.html' %}
+
+{% block title %}Reports & Insights{% endblock %}
+{% block header_title %}Pharmacy Analytics & Reports{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3 no-print">
+    <div>
+        <h4 class="fw-bold mb-1">Financial & Inventory Reports</h4>
+        <p class="text-muted small mb-0">Detailed insights into pharmacy revenue, gross profits, and stock valuation.</p>
+    </div>
+    <button class="btn btn-teal rounded-pill px-4 shadow-sm" onclick="window.print()">
+        <i class="bi bi-printer me-1"></i> Print / Save Report
+    </button>
+</div>
+
+<!-- Financial Summary Cards -->
+<div class="row g-3 mb-4">
+    <div class="col-sm-6 col-lg-3">
+        <div class="card border-0 shadow-sm rounded-4 h-100 p-3">
+            <span class="text-muted small text-uppercase fw-semibold">Total Revenue (All Time)</span>
+            <h3 class="fw-bold text-dark mt-2 mb-1">₹{{ metrics.total_revenue }}</h3>
+            <small class="text-muted"><i class="bi bi-receipt"></i> {{ metrics.total_sales_count }} sales transactions</small>
+        </div>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+        <div class="card border-0 shadow-sm rounded-4 h-100 p-3">
+            <span class="text-muted small text-uppercase fw-semibold">Estimated Gross Profit</span>
+            <h3 class="fw-bold text-success mt-2 mb-1">₹{{ metrics.estimated_profit }}</h3>
+            <small class="text-muted"><i class="bi bi-graph-up"></i> Sales minus Cost of Goods</small>
+        </div>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+        <div class="card border-0 shadow-sm rounded-4 h-100 p-3">
+            <span class="text-muted small text-uppercase fw-semibold">Current Stock Cost Value</span>
+            <h3 class="fw-bold text-secondary mt-2 mb-1">₹{{ metrics.total_cost_value }}</h3>
+            <small class="text-muted"><i class="bi bi-boxes"></i> {{ metrics.total_units }} units at purchase cost</small>
+        </div>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+        <div class="card border-0 shadow-sm rounded-4 h-100 p-3">
+            <span class="text-muted small text-uppercase fw-semibold">Stock Retail Valuation</span>
+            <h3 class="fw-bold text-teal mt-2 mb-1">₹{{ metrics.total_retail_value }}</h3>
+            <small class="text-muted"><i class="bi bi-tag"></i> Expected total shelf realization</small>
+        </div>
+    </div>
+</div>
+
+<!-- Two Column Breakdown -->
+<div class="row g-4 mb-4">
+    <!-- Top 5 Best Selling Medicines -->
+    <div class="col-lg-6">
+        <div class="card border-0 shadow-sm rounded-4 h-100">
+            <div class="card-header bg-white border-0 pt-4 px-4">
+                <h5 class="fw-bold mb-0 text-dark"><i class="bi bi-trophy-fill text-warning me-2"></i> Top Selling Medicines</h5>
+                <p class="text-muted small mb-0">High demand pharmaceutical items by sales volume</p>
+            </div>
+            <div class="card-body p-4 pt-2">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light text-muted small text-uppercase">
+                            <tr>
+                                <th>Medicine</th>
+                                <th class="text-center">Units Sold</th>
+                                <th class="text-end">Revenue Generated</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% if top_selling %}
+                                {% for item in top_selling %}
+                                    <tr>
+                                        <td>
+                                            <div class="fw-bold text-dark">{{ item.medicine_name }}</div>
+                                        </td>
+                                        <td class="text-center">
+                                            <span class="badge bg-teal-subtle text-teal rounded-pill px-3 py-1 fw-bold">
+                                                {{ item.total_qty }} units
+                                            </span>
+                                        </td>
+                                        <td class="text-end fw-bold text-dark">
+                                            ₹{{ "%.2f"|format(item.total_amount) }}
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            {% else %}
+                                <tr>
+                                    <td colspan="3" class="text-center py-4 text-muted">No sales items recorded yet.</td>
+                                </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Category Wise Inventory Distribution -->
+    <div class="col-lg-6">
+        <div class="card border-0 shadow-sm rounded-4 h-100">
+            <div class="card-header bg-white border-0 pt-4 px-4">
+                <h5 class="fw-bold mb-0 text-dark"><i class="bi bi-pie-chart-fill text-teal me-2"></i> Inventory by Category</h5>
+                <p class="text-muted small mb-0">Stock distribution across medical formulations</p>
+            </div>
+            <div class="card-body p-4 pt-2">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light text-muted small text-uppercase">
+                            <tr>
+                                <th>Formulation Category</th>
+                                <th class="text-center">Products</th>
+                                <th class="text-center">Total Units</th>
+                                <th class="text-end">Retail Value</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% if category_summary %}
+                                {% for cat in category_summary %}
+                                    <tr>
+                                        <td class="fw-semibold text-dark">{{ cat.category }}</td>
+                                        <td class="text-center text-muted small">{{ cat.count }} items</td>
+                                        <td class="text-center">
+                                            <span class="badge bg-light text-secondary border px-2 py-1">
+                                                {{ cat.total_units }}
+                                            </span>
+                                        </td>
+                                        <td class="text-end fw-bold text-teal">
+                                            ₹{{ "%.2f"|format(cat.retail_val) }}
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            {% else %}
+                                <tr>
+                                    <td colspan="4" class="text-center py-4 text-muted">No medicines added in catalog.</td>
+                                </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

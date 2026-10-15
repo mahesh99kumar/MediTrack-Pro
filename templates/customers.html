@@ -1,0 +1,231 @@
+{% extends 'base.html' %}
+
+{% block title %}Customers{% endblock %}
+{% block header_title %}Customer Management{% endblock %}
+
+{% block content %}
+<div class="card border-0 shadow-sm rounded-4 mb-4">
+    <div class="card-body p-4">
+        <!-- Header & Action -->
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+            <div>
+                <h4 class="fw-bold mb-1">Customer Directory</h4>
+                <p class="text-muted small mb-0">Manage patient / customer profiles, contact numbers, and purchase histories.</p>
+            </div>
+            <button class="btn btn-teal shadow-sm rounded-pill px-4" data-bs-toggle="modal" data-bs-target="#addCustomerModal">
+                <i class="bi bi-person-plus me-1"></i> Add New Customer
+            </button>
+        </div>
+
+        <!-- Search Bar -->
+        <form method="GET" action="{{ url_for('customers') }}" class="row g-3 mb-4">
+            <div class="col-md-6">
+                <div class="input-group">
+                    <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
+                    <input type="text" name="search" class="form-control border-start-0" placeholder="Search by customer name, phone number, or email..." value="{{ search }}">
+                </div>
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-teal w-100">Search</button>
+            </div>
+            {% if search %}
+            <div class="col-md-2">
+                <a href="{{ url_for('customers') }}" class="btn btn-outline-secondary w-100">Clear Search</a>
+            </div>
+            {% endif %}
+        </form>
+
+        <!-- Customers Table -->
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light text-muted small text-uppercase">
+                    <tr>
+                        <th>#</th>
+                        <th>Customer Name</th>
+                        <th>Phone Number</th>
+                        <th>Email</th>
+                        <th>Address</th>
+                        <th class="text-center">Total Invoices</th>
+                        <th class="text-end">Total Spent</th>
+                        <th class="text-center">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if customers %}
+                        {% for cust in customers %}
+                            <tr>
+                                <td class="text-muted small">{{ loop.index }}</td>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <div class="avatar-circle me-2 bg-teal-subtle text-teal fw-bold">
+                                            {{ cust.name[0] }}
+                                        </div>
+                                        <span class="fw-bold text-dark">{{ cust.name }}</span>
+                                    </div>
+                                </td>
+                                <td>
+                                    {% if cust.phone %}
+                                        <span class="text-teal fw-medium"><i class="bi bi-telephone me-1"></i> {{ cust.phone }}</span>
+                                    {% else %}
+                                        <span class="text-muted small">Not provided</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if cust.email %}
+                                        <span class="text-secondary small">{{ cust.email }}</span>
+                                    {% else %}
+                                        <span class="text-muted small">-</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <span class="text-secondary small">{{ cust.address or 'N/A' }}</span>
+                                </td>
+                                <td class="text-center">
+                                    <span class="badge bg-light text-dark border px-3 py-1 rounded-pill">
+                                        {{ cust.total_invoices }} bills
+                                    </span>
+                                </td>
+                                <td class="text-end fw-bold text-teal fs-6">
+                                    ₹{{ "%.2f"|format(cust.total_spent) }}
+                                </td>
+                                
+                                <td class="text-center">
+                                    <div class="btn-group btn-group-sm">
+
+                                        <!-- Edit Customer Button -->
+                                        <button type="button"
+                                                class="btn btn-outline-secondary"
+                                                data-bs-toggle="modal"
+                                                data-bs-target="#editCustomerModal{{ cust.id }}"
+                                                title="Edit Customer">
+                                            <i class="bi bi-pencil"></i>
+                                        </button>
+
+                                        <!-- Delete Customer Button -->
+                                        <form method="POST"
+                                            action="{{ url_for('delete_customer', id=cust.id) }}"
+                                            onsubmit="return confirm('Are you sure you want to delete this customer?');"
+                                            class="d-inline">
+                                            <button type="submit"
+                                                    class="btn btn-outline-danger"
+                                                    title="Delete Customer">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </form>
+
+                                    </div>
+                                </td>
+
+                            </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="7" class="text-center py-5 text-muted">
+                                <i class="bi bi-people fs-2 d-block mb-2 text-muted"></i>
+                                No customer records found.
+                            </td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Customer Modal -->
+{% for cust in customers %}
+<div class="modal fade" id="editCustomerModal{{ cust.id }}"
+     tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow rounded-4">
+
+            <div class="modal-header border-bottom px-4 pt-4">
+                <h5 class="modal-title fw-bold">
+                    <i class="bi bi-pencil-square text-teal me-2"></i>
+                    Edit Customer
+                </h5>
+                <button type="button" class="btn-close"
+                        data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+
+            <form method="POST"
+                  action="{{ url_for('edit_customer', id=cust.id) }}">
+                <div class="modal-body p-4">
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Customer Name *</label>
+                        <input type="text" name="name" class="form-control"
+                               value="{{ cust.name }}" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Phone Number</label>
+                        <input type="tel" name="phone" class="form-control"
+                               value="{{ cust.phone or '' }}">
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Email Address</label>
+                        <input type="email" name="email" class="form-control"
+                               value="{{ cust.email or '' }}">
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Address</label>
+                        <textarea name="address" rows="2"
+                                  class="form-control">{{ cust.address or '' }}</textarea>
+                    </div>
+
+                </div>
+
+                <div class="modal-footer border-top px-4 pb-4">
+                    <button type="button" class="btn btn-light"
+                            data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-teal px-4">
+                        <i class="bi bi-check-lg me-1"></i> Save Changes
+                    </button>
+                </div>
+            </form>
+
+        </div>
+    </div>
+</div>
+{% endfor %}
+<!-- /Edit Customer Modal -->
+
+<!-- Add Customer Modal -->
+<div class="modal fade" id="addCustomerModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow rounded-4">
+            <div class="modal-header border-bottom px-4 pt-4">
+                <h5 class="modal-title fw-bold"><i class="bi bi-person-plus text-teal me-2"></i> Add New Customer</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="POST" action="{{ url_for('add_customer') }}">
+                <div class="modal-body p-4">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Customer / Patient Name *</label>
+                        <input type="text" name="name" class="form-control" placeholder="e.g. Mahesh Kumar" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Phone Number *</label>
+                        <input type="tel" name="phone" class="form-control" placeholder="e.g. 6376223233" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Email Address (Optional)</label>
+                        <input type="email" name="email" class="form-control" placeholder="e.g. mahesh@example.com">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Residential / Clinic Address</label>
+                        <textarea name="address" rows="2" class="form-control" placeholder="Flat No, Street, City..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer border-top px-4 pb-4">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-teal px-4"><i class="bi bi-check-lg me-1"></i> Save Customer</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

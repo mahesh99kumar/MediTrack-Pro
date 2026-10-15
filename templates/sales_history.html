@@ -1,0 +1,99 @@
+{% extends 'base.html' %}
+
+{% block title %}Sales History{% endblock %}
+{% block header_title %}Sales & Billing History{% endblock %}
+
+{% block content %}
+<div class="card border-0 shadow-sm rounded-4 mb-4">
+    <div class="card-body p-4">
+        <!-- Header -->
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+            <div>
+                <h4 class="fw-bold mb-1">Sales Register</h4>
+                <p class="text-muted small mb-0">Browse past customer invoices, track revenues, and reprint receipts.</p>
+            </div>
+            <div class="badge bg-teal-subtle text-teal fs-6 px-3 py-2 rounded-pill">
+                Filtered Revenue: <strong>₹{{ total_revenue }}</strong>
+            </div>
+        </div>
+
+        <!-- Filter Form -->
+        <form method="GET" action="{{ url_for('sales_history') }}" class="row g-3 mb-4">
+            <div class="col-md-4">
+                <label class="form-label small fw-semibold text-muted">Search Invoice or Customer</label>
+                <div class="input-group">
+                    <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
+                    <input type="text" name="search" class="form-control border-start-0" placeholder="e.g. INV-2026 or Rahul..." value="{{ search }}">
+                </div>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label small fw-semibold text-muted">From Date</label>
+                <input type="date" name="start_date" class="form-control" value="{{ start_date }}">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label small fw-semibold text-muted">To Date</label>
+                <input type="date" name="end_date" class="form-control" value="{{ end_date }}">
+            </div>
+            <div class="col-md-2 d-flex align-items-end gap-2">
+                <button type="submit" class="btn btn-teal w-100">Filter</button>
+                <a href="{{ url_for('sales_history') }}" class="btn btn-outline-secondary" title="Reset"><i class="bi bi-arrow-counterclockwise"></i></a>
+            </div>
+        </form>
+
+        <!-- Sales Table -->
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light text-muted small text-uppercase">
+                    <tr>
+                        <th>#</th>
+                        <th>Invoice No</th>
+                        <th>Date & Time</th>
+                        <th>Customer Name</th>
+                        <th>Payment Mode</th>
+                        <th class="text-end">Subtotal</th>
+                        <th class="text-end">Tax</th>
+                        <th class="text-end">Net Total</th>
+                        <th class="text-center">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if sales %}
+                        {% for sale in sales %}
+                            <tr>
+                                <td class="text-muted small">{{ loop.index }}</td>
+                                <td class="fw-bold text-teal">
+                                    <i class="bi bi-receipt-cutoff me-1"></i> {{ sale.invoice_no }}
+                                </td>
+                                <td class="text-secondary small">{{ sale.created_at }}</td>
+                                <td>
+                                    <span class="fw-semibold text-dark">{{ sale.customer_name }}</span>
+                                </td>
+                                <td>
+                                    <span class="badge bg-light text-dark border px-2 py-1">
+                                        <i class="bi bi-wallet2 text-teal me-1"></i> {{ sale.payment_mode }}
+                                    </span>
+                                </td>
+                                <td class="text-end text-muted small">₹{{ "%.2f"|format(sale.subtotal) }}</td>
+                                <td class="text-end text-muted small">₹{{ "%.2f"|format(sale.tax) }}</td>
+                                <td class="text-end fw-bold text-dark fs-6">₹{{ "%.2f"|format(sale.total_amount) }}</td>
+                                <td class="text-center">
+                                    <a href="{{ url_for('view_invoice', sale_id=sale.id) }}" class="btn btn-sm btn-outline-teal rounded-pill px-3">
+                                        <i class="bi bi-eye me-1"></i> View / Print
+                                    </a>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="9" class="text-center py-5 text-muted">
+                                <i class="bi bi-journal-x fs-2 d-block mb-2 text-muted"></i>
+                                No sales found for the selected filter.
+                            </td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

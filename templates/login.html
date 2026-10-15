@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - {{ pharmacy_name }}</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/login.css') }}">
+</head>
+<body class="login-body">
+
+<div class="container d-flex justify-content-center align-items-center min-vh-100 py-4">
+    <div class="card login-card shadow-lg border-0 overflow-hidden">
+        <div class="row g-0">
+            <!-- Left Banner (Branding) -->
+            <div class="col-lg-5 login-banner d-none d-lg-flex flex-column justify-content-between p-5 text-white">
+                <div>
+                    <div class="d-flex align-items-center mb-3">
+                        <i class="bi bi-capsule-pill fs-1 me-2 text-warning"></i>
+                        <span class="fs-3 fw-bold tracking-tight">MediTrack<span class="text-warning">Pro</span></span>
+                    </div>
+                    <p class="text-white-50 fs-6">Complete Pharmacy & Healthcare Management System.</p>
+                </div>
+                <div>
+                    <div class="feature-item d-flex align-items-center mb-3">
+                        <i class="bi bi-shield-check fs-4 me-3 text-warning"></i>
+                        <span>Secure Prescription & Drug Inventory</span>
+                    </div>
+                    <div class="feature-item d-flex align-items-center mb-3">
+                        <i class="bi bi-receipt fs-4 me-3 text-warning"></i>
+                        <span>High-Speed POS & Instant Invoicing</span>
+                    </div>
+                    <div class="feature-item d-flex align-items-center">
+                        <i class="bi bi-bell fs-4 me-3 text-warning"></i>
+                        <span>Automated Low-Stock & Expiry Alerts</span>
+                    </div>
+                </div>
+                <div class="text-white-50 small">
+                    &copy; {{ current_year }} MediTrack Pro Healthcare Systems.
+                </div>
+            </div>
+
+            <!-- Right Form -->
+            <div class="col-lg-7 p-4 p-md-5 d-flex flex-column justify-content-center bg-white">
+                <div class="text-center text-lg-start mb-4">
+                    <h3 class="fw-bold text-dark mb-1">Sign In</h3>
+                    <p class="text-muted">Enter your authorized staff credentials to continue.</p>
+                </div>
+
+                <!-- Flash Messages -->
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                            <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
+
+                <form method="POST" action="{{ url_for('login') }}">
+                    <div class="mb-3">
+                        <label for="username" class="form-label fw-semibold text-secondary">Username</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light border-end-0"><i class="bi bi-person text-muted"></i></span>
+                            <input type="text" class="form-control bg-light border-start-0" id="username" name="username" placeholder="e.g. admin" required autofocus>
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <div class="d-flex justify-content-between">
+                            <label for="password" class="form-label fw-semibold text-secondary">Password</label>
+                        </div>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light border-end-0"><i class="bi bi-lock text-muted"></i></span>
+                            <input type="password" class="form-control bg-light border-start-0" id="password" name="password" placeholder="••••••••" required>
+                        </div>
+                    </div>
+
+                    <div class="d-grid mb-3">
+                        <button type="submit" class="btn btn-teal btn-lg fw-semibold shadow-sm">
+                            <i class="bi bi-box-arrow-in-right me-2"></i> Log In to Dashboard
+                        </button>
+                    </div>
+                      
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
