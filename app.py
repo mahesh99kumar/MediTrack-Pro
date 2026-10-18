@@ -22,6 +22,10 @@ except ImportError:
 
 from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify
 from werkzeug.security import check_password_hash
+
+from dotenv import load_dotenv
+load_dotenv()
+
 from config import Config
 from database import generate_password_hash, get_db_connection, init_db
 from generate_assets import create_png
@@ -788,13 +792,10 @@ def backup_database():
 
 # ----------------- MAIN RUNNER -----------------
 if __name__ == '__main__':
-    init_db()
     print("=" * 60)
     print(" MediTrack Pro - Pharmacy & Healthcare Management System")
     print("=" * 60)
     print(" Application running at: http://127.0.0.1:5000")
-    print(" Default Login Credentials:")
-    print("   Username: maheshkakar99")
-    print("   Password: Jaat$1628")
     print("=" * 60)
-    app.run(debug=True, port=5000)
+
+    app.run(debug=False, port=5000)

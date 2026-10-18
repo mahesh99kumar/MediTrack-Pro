@@ -85,14 +85,18 @@ def get_db_connection():
                 password=Config.MYSQL_PASSWORD,
                 database=Config.MYSQL_DB,
                 charset='utf8mb4',
-                autocommit=False
+                autocommit=False,
+                cursorclass=pymysql.cursors.DictCursor
             )
             return MySQLConnectionWrapper(raw_conn)
         except Exception as e:
-            print(f"[Notice] MySQL connection error: {e}. Falling back to SQLite.")
-
+            raise RuntimeError(
+                f"MySQL connection failed: {e}"
+            ) from e
     # SQLite Fallback
-    conn = sqlite3.connect(getattr(Config, 'SQLITE_PATH', getattr(Config, 'DATABASE_PATH', 'pharmacy.db')))
+    conn = sqlite3.connect(
+        getattr(Config, 'SQLITE_PATH', 'pharmacy.db')
+    )
     conn.row_factory = sqlite3.Row
     return conn
 

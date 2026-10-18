@@ -39,3 +39,4 @@ Thumbs.db
 htmlcov/
 database/
 backups/
+.env
