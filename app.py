@@ -771,24 +771,92 @@ def reports():
         category_summary=category_summary
     )
 
+
 # ----------------- BACKUP -----------------
 @app.route('/backup')
 @login_required
 def backup_database():
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-    backup_filename = f"pharmacy_backup_{timestamp}.db"
+    backup_filename = f"pharmacy_backup_{timestamp}.sql"
     dest_path = os.path.join(Config.BACKUP_FOLDER, backup_filename)
 
     try:
-        if os.path.exists(Config.DATABASE_PATH):
-            shutil.copy2(Config.DATABASE_PATH, dest_path)
-            flash(f"Database backup created successfully: {backup_filename}", "success")
+        # Create backup folder if it does not exist
+        os.makedirs(Config.BACKUP_FOLDER, exist_ok=True)
+
+        if getattr(Config, 'DB_TYPE', 'mysql').lower() == 'mysql':
+            conn = get_db_connection()
+            try:
+                cursor = conn.cursor()
+
+                with open(dest_path, 'w', encoding='utf-8') as backup_file:
+                    cursor.execute("SHOW TABLES")
+                    tables = cursor.fetchall()
+
+                    if not tables:
+                        raise RuntimeError("MySQL database has no tables to back up.")
+
+                    for row in tables:
+                        table_name = next(iter(row.values()))
+                        safe_table = '`' + str(table_name).replace('`', '``') + '`'
+
+                        cursor.execute(f"SHOW CREATE TABLE {safe_table}")
+                        create_row = cursor.fetchone()
+                        create_sql = list(create_row.values())[1]
+
+                        backup_file.write(f"\nDROP TABLE IF EXISTS {safe_table};\n")
+                        backup_file.write(create_sql + ";\n\n")
+
+                        cursor.execute(f"SELECT * FROM {safe_table}")
+                        rows = cursor.fetchall()
+
+                        for record in rows:
+                            columns = ', '.join(
+                                '`' + str(col).replace('`', '``') + '`'
+                                for col in record.keys()
+                            )
+                            values = []
+                            for value in record.values():
+                                if value is None:
+                                    values.append("NULL")
+                                elif isinstance(value, (int, float)):
+                                    values.append(str(value))
+                                elif isinstance(value, (bytes, bytearray)):
+                                    values.append("0x" + value.hex())
+                                else:
+                                    escaped = str(value).replace("\\", "\\\\").replace("'", "\\'")
+                                    values.append("'" + escaped + "'")
+
+                            backup_file.write(
+                                f"INSERT INTO {safe_table} ({columns}) "
+                                f"VALUES ({', '.join(values)});\n"
+                            )
+            finally:
+                conn.close()
+
         else:
-            flash("Database file not found to backup.", "danger")
+            sqlite_path = getattr(
+                Config, 'SQLITE_PATH',
+                getattr(Config, 'DATABASE_PATH', 'pharmacy.db')
+            )
+            if not os.path.exists(sqlite_path):
+                raise FileNotFoundError("SQLite database file was not found.")
+
+            shutil.copy2(sqlite_path, dest_path.replace('.sql', '.db'))
+            backup_filename = backup_filename.replace('.sql', '.db')
+
+        flash(f"Database backup created: {backup_filename}", "success")
+
     except Exception as e:
-        flash(f"Backup failed: {str(e)}", "danger")
+        if os.path.exists(dest_path):
+            try:
+                os.remove(dest_path)
+            except OSError:
+                pass
+        flash(f"Backup failed: {e}", "danger")
 
     return redirect(url_for('dashboard'))
+
 
 # ----------------- MAIN RUNNER -----------------
 if __name__ == '__main__':
